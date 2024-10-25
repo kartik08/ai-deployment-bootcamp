@@ -12,10 +12,11 @@ export ENV=$(gcloud compute instances describe $INSTANCE_NAME --format='value[](
 
 gcloud storage cp "gs://${PROJECT_ID}-${ENV}-api-source/ml-api.zip" ./
 unzip ml-api.zip -d ./ml-api
-cd ml-api
+
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
+pip install python-multipart
 sudo ufw allow 8080/tcp
-fastapi run main.py --port 8080 >> ml-api.log 2>&1 &
+venv/bin/streamlit run main.py >> ml-api.log 2>&1 &
+venv/bin/fastapi run main.py --port 8080 >> ml-api.log 2>&1 &
