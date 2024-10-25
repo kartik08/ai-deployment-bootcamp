@@ -290,7 +290,7 @@ resource "google_compute_firewall" "webserver" {
 
   allow {
     protocol = "tcp"
-    ports    = ["8080","8051"]
+    ports    = ["8080","8051","8501"]
   }
 
   source_ranges = ["0.0.0.0/0"] 

@@ -16,8 +16,12 @@ class LlamaTask(Enum):
         if task == LlamaTask.GENERATION:
             return input_dict
         elif task == LlamaTask.SUMMARIZATION:
-            prompt_template = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>You are a large language model used for summarization.<|eot_id|><|start_header_id|>user<|end_header_id|>Summarize the following text: {0}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
-            input_dict["prompt"] = prompt_template.format(input_dict["prompt"])
+            if input_dict["summary_length"] == 'concise':
+                length_instruction = 'under 100 words'
+            if input_dict["summary_length"] == 'detailed':
+                length_instruction = 'between 100-250 words'
+            prompt_template = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>You are a large language model used for summarization.<|eot_id|><|start_header_id|>user<|end_header_id|>Summarize the following text in {3} with style as {1}: {0} <|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+            input_dict["prompt"] = prompt_template.format(input_dict["prompt"], input_dict["summary_style"], length_instruction)
             input_dict["max_tokens"] = 200
             return input_dict
         else:
@@ -33,10 +37,12 @@ class Models(Enum):
         return [model.value for model in Models]
 
     @classmethod
-    def get_input_for_model_name(cls, model_name: str, input_str: str, task: LlamaTask) -> Dict[str, Any]:
+    def get_input_for_model_name(cls, model_name: str, input_str: str, task: LlamaTask, summary_length: str, summary_style:str) -> Dict[str, Any]:
         if model_name == Models.LLAMA_3_1.value:
             input_dict = deepcopy(LLAMA_3_1_INPUT_TEMPLATE)
             input_dict["prompt"] = input_str
+            input_dict["summary_length"] = summary_length
+            input_dict["summary_style"] = summary_style
             input_dict = LlamaTask.format_input_for_task(task, input_dict)
             return input_dict
 

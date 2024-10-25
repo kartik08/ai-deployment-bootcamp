@@ -38,7 +38,7 @@ app = FastAPI()
 
 
 @app.post("/predict")
-async def predict(text: str = Body(None), num_tokens: int = Body(...), file: UploadFile = None):
+async def predict(text: str = Body(None), num_tokens: int = Body(...), file: UploadFile = None, summary_length: str = Body(None),  summary_style: str = Body(None)):
     
     if file:
         client = storage.Client()
@@ -82,7 +82,7 @@ async def predict(text: str = Body(None), num_tokens: int = Body(...), file: Upl
     if not text:
         return JSONResponse(content={"error": "Text input is required."}, status_code=400)
     task= LlamaTask.SUMMARIZATION
-    input_data = Models.get_input_for_model_name(MODEL_NAME, text, task)
+    input_data = Models.get_input_for_model_name(MODEL_NAME, text, task, summary_length, summary_style)
     input_data["max_tokens"] = num_tokens
     prediction_client = aiplatform_v1.PredictionServiceClient(
         client_options={
@@ -135,8 +135,12 @@ st.title("Document Summarizer")
 uploaded_file = st.file_uploader('Please upload a PDF file')
 news_text = st.text_area('Or paste news text here')
 num_tokens = st.slider('Select number of tokens for summarization', min_value=50, max_value=1000, value=200)
+summary_length = st.selectbox(label = 'Select Summary Length', options = ['Concise', 'Detailed'])
+summary_style = st.selectbox(label = 'Select Summary Style', options = ['Executive Summary', 'Conversational Summary', 'Analytical Summary', 'Bullet Point Style', 'Descriptive Style', 'Formal Style', 'Narrative Style'])
 
-def call_backend(text, num_tokens, uploaded_file=None):
+st.form_submit_button(label="Submit", help=None, on_click=None, args=None, kwargs=None, type="secondary", icon=None, disabled=False, use_container_width=False)
+
+def call_backend(text, num_tokens, summary_length, summary_style, uploaded_file=None):
     if uploaded_file:
         files = {'file': uploaded_file}
     else:
@@ -144,7 +148,9 @@ def call_backend(text, num_tokens, uploaded_file=None):
 
     payload = {
         "text": text,
-        "num_tokens": num_tokens
+        "num_tokens": num_tokens,
+        "summary_length":summary_length,
+        "summary_style":summary_style
     }
 
     response = requests.post("http://35.223.159.99:8080/predict", files=files, data=payload)
@@ -155,7 +161,7 @@ def call_backend(text, num_tokens, uploaded_file=None):
 
 if uploaded_file is not None:
     st.write("File uploaded successfully.")
-    summary = call_backend(text="", num_tokens=num_tokens, uploaded_file=uploaded_file)
+    summary = call_backend(text="", num_tokens=num_tokens, summary_length= summary_length, summary_style = summary_style, uploaded_file=uploaded_file)
     # Extract the output text
     output_text = summary['predictions'][0].split("Output:")[-1]
 
@@ -165,7 +171,7 @@ if uploaded_file is not None:
     st.write(output_text)
 
 if news_text:
-    summary = call_backend(text=news_text, num_tokens=num_tokens)
+    summary = call_backend(text=news_text, num_tokens=num_tokens, summary_length= summary_length, summary_style = summary_style)
     # Extract the output text
     output_text = summary['predictions'][0].split("Output:")[-1]
 
@@ -173,3 +179,4 @@ if news_text:
     output_text = output_text.replace("\\n", "\n").strip()
     st.subheader('Summarized Content')
     st.write(output_text)
+
